@@ -18,7 +18,7 @@ else:
     from cStringIO import StringIO
 
 
-from bitarray import bitarray, bitdiff, bits2bytes, __version__
+from bitarray import bitarray, bitdiff, bits2bytes, jaccard, __version__
 
 
 tests = []
@@ -168,6 +168,25 @@ class TestsModuleFunctions(unittest.TestCase, Util):
                      (2**62, 2**59), (2**63-8, 2**60-1)]:
             self.assertEqual(bits2bytes(n), m)
 
+    def test_jaccard(self):
+        a = bitarray('0011')
+        b = bitarray('0101')
+        self.assertEqual(jaccard(a, b), 1 / float(3))
+        self.assertRaises(TypeError, jaccard, a, '')
+        self.assertRaises(TypeError, jaccard, '1', b)
+        self.assertRaises(TypeError, jaccard, a, 4)
+        b.append(1)
+        self.assertRaises(ValueError, jaccard, a, b)
+
+        for n in list(range(1, 50)) + [randint(1000, 2000)]:
+            a = bitarray()
+            a.frombytes(os.urandom(bits2bytes(n)))
+            del a[n:]
+            b = bitarray()
+            b.frombytes(os.urandom(bits2bytes(n)))
+            del b[n:]
+            diff = (a & b).count() / float((a | b).count())
+            self.assertEqual(jaccard(a, b), diff)
 
 tests.append(TestsModuleFunctions)
 

@@ -2966,6 +2966,49 @@ efficient, as no intermediate bitarray object gets created");
 
 
 static PyObject *
+jaccard(PyObject *self, PyObject *args)
+{
+    PyObject *a, *b;
+    Py_ssize_t i;
+    idx_t res1 = 0, res2 = 0;
+    unsigned char c1, c2;
+
+    if (!PyArg_ParseTuple(args, "OO:jaccard", &a, &b))
+        return NULL;
+    if (!(bitarray_Check(a) && bitarray_Check(b))) {
+        PyErr_SetString(PyExc_TypeError, "bitarray object expected");
+        return NULL;
+    }
+
+#define aa  ((bitarrayobject *) a)
+#define bb  ((bitarrayobject *) b)
+    if (aa->nbits != bb->nbits) {
+        PyErr_SetString(PyExc_ValueError,
+                        "bitarrays of equal length expected");
+        return NULL;
+    }
+    setunused(aa);
+    setunused(bb);
+    for (i = 0; i < Py_SIZE(aa); i++) {
+        c1 = aa->ob_item[i] & bb->ob_item[i];
+        c2 = aa->ob_item[i] | bb->ob_item[i];
+        res1 += bitcount_lookup[c1];
+        res2 += bitcount_lookup[c2];
+    }
+#undef aa
+#undef bb
+    return PyFloat_FromDouble((double)res1/res2);
+}
+
+PyDoc_STRVAR(jaccard_doc,
+"jaccard(a, b) -> float\n\
+\n\
+Return the Jaccard similarity coefficient between two bitarrays a and b.\n\
+This function does the same as (a & b).count() / (a | b).count(), but is\n\
+more memory efficient, as no intermediate bitarray object gets created");
+
+
+static PyObject *
 bits2bytes(PyObject *self, PyObject *v)
 {
     idx_t n = 0;
@@ -3012,6 +3055,7 @@ tuple(sizeof(void *),\n\
 
 static PyMethodDef module_functions[] = {
     {"bitdiff",    (PyCFunction) bitdiff,    METH_VARARGS, bitdiff_doc   },
+    {"jaccard",    (PyCFunction) jaccard,    METH_VARARGS, jaccard_doc   },
     {"bits2bytes", (PyCFunction) bits2bytes, METH_O,       bits2bytes_doc},
     {"_sysinfo",   (PyCFunction) sysinfo,    METH_NOARGS,  sysinfo_doc   },
     {NULL,         NULL}  /* sentinel */
